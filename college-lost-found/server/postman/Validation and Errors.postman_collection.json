@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "College Lost & Found Validation and Errors",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "reporterEmail", "value": "" },
+    { "key": "reporterStudentId", "value": "" },
+    { "key": "reporterToken", "value": "" },
+    { "key": "claimantEmail", "value": "" },
+    { "key": "claimantStudentId", "value": "" },
+    { "key": "claimantToken", "value": "" },
+    { "key": "itemId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Reject Missing Registration Fields",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Missing registration fields return 400', () => pm.response.to.have.status(400));", "const missingRegisterResult = pm.response.json();", "pm.test('Error uses standard envelope', () => { pm.expect(missingRegisterResult.success).to.eql(false); pm.expect(missingRegisterResult.error.code).to.eql('VALIDATION_ERROR'); });", "pm.test('Required field message is specific', () => pm.expect(missingRegisterResult.message).to.eql('Name is required'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Reject Invalid Registration Email",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid email returns 400', () => pm.response.to.have.status(400));", "const invalidRegisterEmailResult = pm.response.json();", "pm.test('Email message is specific', () => pm.expect(invalidRegisterEmailResult.message).to.eql('Enter a valid email'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Validation User\",\n  \"email\": \"not-an-email\",\n  \"studentId\": \"INVALID-EMAIL\",\n  \"password\": \"Valid-Password-42\",\n  \"confirmPassword\": \"Valid-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Reject Short Registration Password",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Short password returns 400', () => pm.response.to.have.status(400));", "const shortPasswordResult = pm.response.json();", "pm.test('Password length message is specific', () => pm.expect(shortPasswordResult.message).to.eql('Password must be at least 6 characters'));", "pm.test('Password is not echoed in errors', () => pm.expect(JSON.stringify(shortPasswordResult)).not.to.include('abc'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Validation User\",\n  \"email\": \"short-password@example.com\",\n  \"studentId\": \"SHORT-PASSWORD\",\n  \"password\": \"abc\",\n  \"confirmPassword\": \"abc\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Reject Password Mismatch",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Mismatched passwords return 400', () => pm.response.to.have.status(400));", "pm.test('Mismatch message is specific', () => pm.expect(pm.response.json().message).to.eql('Passwords do not match'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Validation User\",\n  \"email\": \"mismatch@example.com\",\n  \"studentId\": \"MISMATCH\",\n  \"password\": \"Valid-Password-42\",\n  \"confirmPassword\": \"Other-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Reject Invalid Login Email",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid login email returns 400', () => pm.response.to.have.status(400));", "pm.test('Login email message is specific', () => pm.expect(pm.response.json().message).to.eql('Enter a valid email'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"bad-email\",\n  \"password\": \"Valid-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Reject Malformed JSON",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Malformed JSON returns 400', () => pm.response.to.have.status(400));", "const malformedJsonResult = pm.response.json();", "pm.test('Malformed JSON uses standard error envelope', () => { pm.expect(malformedJsonResult.success).to.eql(false); pm.expect(malformedJsonResult.error.code).to.eql('INVALID_JSON'); });"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"invalid\":", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Register Reporter Account",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const reporterValidationSuffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;", "pm.collectionVariables.set('reporterEmail', `validation-reporter-${reporterValidationSuffix}@example.com`);", "pm.collectionVariables.set('reporterStudentId', `VALIDATION-REPORTER-${reporterValidationSuffix}`);"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reporter registers with success envelope', () => pm.response.to.have.status(201));", "const validationReporterRegistration = pm.response.json().data;", "pm.test('Registered user response omits password', () => pm.expect(validationReporterRegistration.user).not.to.have.property('password'));"] } }
+      ],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Validation Reporter\",\n  \"email\": \"{{reporterEmail}}\",\n  \"studentId\": \"{{reporterStudentId}}\",\n  \"password\": \"Valid-Password-42\",\n  \"confirmPassword\": \"Valid-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Reject Duplicate Email",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Duplicate email returns 409', () => pm.response.to.have.status(409));", "const duplicateEmailResult = pm.response.json();", "pm.test('Duplicate email uses specific code', () => pm.expect(duplicateEmailResult.error.code).to.eql('DUPLICATE_EMAIL'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Duplicate Reporter\",\n  \"email\": \"{{reporterEmail}}\",\n  \"studentId\": \"ANOTHER-{{reporterStudentId}}\",\n  \"password\": \"Valid-Password-42\",\n  \"confirmPassword\": \"Valid-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Login Reporter",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reporter login succeeds', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('reporterToken', pm.response.json().data.token);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{reporterEmail}}\",\n  \"password\": \"Valid-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Reject Wrong Password",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Wrong password returns 401', () => pm.response.to.have.status(401));", "pm.test('Credentials error uses standard envelope', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_CREDENTIALS'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{reporterEmail}}\",\n  \"password\": \"Wrong-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Reject Missing Bearer Token",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Missing bearer returns 401', () => pm.response.to.have.status(401));", "pm.test('Unauthorized uses standard envelope', () => pm.expect(pm.response.json().error.code).to.eql('UNAUTHORIZED'));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/claims/my" }
+    },
+    {
+      "name": "Reject Invalid JWT",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid JWT returns 401', () => pm.response.to.have.status(401));", "pm.test('Invalid JWT uses standard envelope', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_TOKEN'));"] } }],
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer not-a-real-token" }], "url": "{{baseUrl}}/api/auth/me" }
+    },
+    {
+      "name": "Reject Invalid Item ObjectId",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid ObjectId returns 400', () => pm.response.to.have.status(400));", "pm.test('ObjectId message is specific', () => pm.expect(pm.response.json().message).to.eql('Invalid MongoDB ObjectId'));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items/not-an-object-id" }
+    },
+    {
+      "name": "Return Item Not Found",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Missing item returns 404', () => pm.response.to.have.status(404));", "pm.test('Not found uses standard envelope', () => pm.expect(pm.response.json().error.code).to.eql('RESOURCE_NOT_FOUND'));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items/ffffffffffffffffffffffff" }
+    },
+    {
+      "name": "Return Unknown Route Not Found",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Unknown API route returns 404', () => pm.response.to.have.status(404));", "pm.test('Route error uses standard envelope', () => pm.expect(pm.response.json().error.code).to.eql('ROUTE_NOT_FOUND'));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/no-such-route" }
+    },
+    {
+      "name": "Create Item With Missing Fields",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid item returns 400', () => pm.response.to.have.status(400));", "pm.test('Item validation names missing title', () => pm.expect(pm.response.json().message).to.eql('Item title is required'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{reporterToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"title\": \"\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items" }
+    },
+    {
+      "name": "Create Valid Item For Claim Tests",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Valid item uses success envelope', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('itemId', pm.response.json().data.item._id);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{reporterToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"title\": \"Validation Collection Found Item\",\n  \"description\": \"Temporary validation test item\",\n  \"category\": \"Testing\",\n  \"location\": \"Postman validation lab\",\n  \"date\": \"2026-10-01T12:00:00.000Z\",\n  \"type\": \"Found\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items" }
+    },
+    {
+      "name": "Register Claimant Account",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const claimantValidationSuffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;", "pm.collectionVariables.set('claimantEmail', `validation-claimant-${claimantValidationSuffix}@example.com`);", "pm.collectionVariables.set('claimantStudentId', `VALIDATION-CLAIMANT-${claimantValidationSuffix}`);"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claimant registers', () => pm.response.to.have.status(201));"] } }
+      ],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Validation Claimant\",\n  \"email\": \"{{claimantEmail}}\",\n  \"studentId\": \"{{claimantStudentId}}\",\n  \"password\": \"Valid-Password-42\",\n  \"confirmPassword\": \"Valid-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Login Claimant",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claimant login succeeds', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('claimantToken', pm.response.json().data.token);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{claimantEmail}}\",\n  \"password\": \"Valid-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Create Duplicate Claim",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('First claim succeeds', () => pm.response.to.have.status(201));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemId}}\",\n  \"message\": \"This item is mine\",\n  \"proofDescription\": \"I can identify the item\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Reject Duplicate Claim",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Duplicate claim returns 409', () => pm.response.to.have.status(409));", "pm.test('Duplicate claim uses specific code', () => pm.expect(pm.response.json().error.code).to.eql('DUPLICATE_CLAIM'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemId}}\",\n  \"message\": \"Duplicate claim\",\n  \"proofDescription\": \"Same item proof\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    }
+  ]
+}

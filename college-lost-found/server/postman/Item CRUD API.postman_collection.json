@@ -1,0 +1,256 @@
+{
+  "info": {
+    "name": "College Lost & Found Item CRUD API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "ownerEmail", "value": "" },
+    { "key": "ownerStudentId", "value": "" },
+    { "key": "ownerToken", "value": "" },
+    { "key": "ownerUserId", "value": "" },
+    { "key": "outsiderEmail", "value": "" },
+    { "key": "outsiderStudentId", "value": "" },
+    { "key": "outsiderToken", "value": "" },
+    { "key": "itemId", "value": "" },
+    { "key": "foundItemId", "value": "" },
+    { "key": "itemTitle", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Register Item Owner",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const ownerSuffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;",
+              "pm.collectionVariables.set('ownerEmail', `item-owner-${ownerSuffix}@example.com`);",
+              "pm.collectionVariables.set('ownerStudentId', `ITEM-OWNER-${ownerSuffix}`);",
+              "pm.collectionVariables.set('itemTitle', `postman-lost-${ownerSuffix}`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Owner account registers', () => pm.response.to.have.status(201));",
+              "const ownerRegistrationData = pm.response.json().data;",
+              "pm.test('Registration does not return password', () => pm.expect(ownerRegistrationData.user).not.to.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Item Owner\",\n  \"email\": \"{{ownerEmail}}\",\n  \"studentId\": \"{{ownerStudentId}}\",\n  \"password\": \"Item-Test-Password-42\",\n  \"confirmPassword\": \"Item-Test-Password-42\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Login Item Owner",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Owner login succeeds', () => pm.response.to.have.status(200));",
+              "const ownerLoginData = pm.response.json().data;",
+              "pm.collectionVariables.set('ownerToken', ownerLoginData.token);",
+              "pm.collectionVariables.set('ownerUserId', ownerLoginData.user.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{ownerEmail}}\",\n  \"password\": \"Item-Test-Password-42\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "Create Lost Item",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Lost item is created', () => pm.response.to.have.status(201));",
+              "const createdLostItem = pm.response.json().data.item;",
+              "pm.collectionVariables.set('itemId', createdLostItem._id);",
+              "pm.test('Initial status follows type', () => pm.expect(createdLostItem.status).to.eql('Lost'));",
+              "pm.test('Reporter comes from authenticated user', () => pm.expect(createdLostItem.reportedBy._id).to.eql(pm.collectionVariables.get('ownerUserId')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"{{itemTitle}}\",\n  \"description\": \"Black wireless headphones\",\n  \"category\": \"Electronics\",\n  \"location\": \"Main-Library\",\n  \"date\": \"2026-10-01T10:00:00.000Z\",\n  \"type\": \"Lost\",\n  \"image\": \"https://example.com/headphones.jpg\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/items"
+      }
+    },
+    {
+      "name": "Create Found Item",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Found item is created', () => pm.response.to.have.status(201));",
+              "const createdFoundItem = pm.response.json().data.item;",
+              "pm.collectionVariables.set('foundItemId', createdFoundItem._id);",
+              "pm.test('Found item starts with Found status', () => pm.expect(createdFoundItem.status).to.eql('Found'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"postman-found-wallet\",\n  \"description\": \"Brown wallet\",\n  \"category\": \"Accessories\",\n  \"location\": \"Student-Center\",\n  \"date\": \"2026-10-01T11:00:00.000Z\",\n  \"type\": \"Found\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/items"
+      }
+    },
+    {
+      "name": "Reject Unauthenticated Create",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Create requires authentication', () => pm.response.to.have.status(401));"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/items"
+      }
+    },
+    {
+      "name": "Reject Client Reporter ID",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Client cannot provide reportedBy', () => pm.response.to.have.status(400));"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"spoofed-reporter\",\n  \"description\": \"Invalid reporter test\",\n  \"category\": \"Other\",\n  \"location\": \"Nowhere\",\n  \"date\": \"2026-10-01\",\n  \"type\": \"Lost\",\n  \"reportedBy\": \"000000000000000000000000\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/items"
+      }
+    },
+    {
+      "name": "List Items",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Items can be listed publicly', () => pm.response.to.have.status(200));", "pm.test('List contains the new lost item', () => pm.expect(pm.response.json().data.items.some((item) => item._id === pm.collectionVariables.get('itemId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items" }
+    },
+    {
+      "name": "Filter Items By Title",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Title filter finds item', () => pm.expect(pm.response.json().data.items.some((item) => item._id === pm.collectionVariables.get('itemId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items?title={{itemTitle}}" }
+    },
+    {
+      "name": "Filter Items By Category",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Category filter finds item', () => pm.expect(pm.response.json().data.items.some((item) => item._id === pm.collectionVariables.get('itemId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items?category=Electronics" }
+    },
+    {
+      "name": "Filter Items By Type",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Type filter finds item', () => pm.expect(pm.response.json().data.items.some((item) => item._id === pm.collectionVariables.get('itemId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items?type=Lost" }
+    },
+    {
+      "name": "Filter Items By Location",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Location filter finds item', () => pm.expect(pm.response.json().data.items.some((item) => item._id === pm.collectionVariables.get('itemId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items?location=Main-Library" }
+    },
+    {
+      "name": "Filter Items By Status",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status filter finds item', () => pm.expect(pm.response.json().data.items.some((item) => item._id === pm.collectionVariables.get('itemId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items?status=Lost" }
+    },
+    {
+      "name": "Get Item By ID",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Item can be fetched by ID', () => pm.response.to.have.status(200));", "pm.test('Returned ID matches requested ID', () => pm.expect(pm.response.json().data.item._id).to.eql(pm.collectionVariables.get('itemId')));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items/{{itemId}}" }
+    },
+    {
+      "name": "Reject Invalid Item ID",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid item ID is rejected', () => pm.response.to.have.status(400));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items/not-an-object-id" }
+    },
+    {
+      "name": "Register Outsider",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const outsiderSuffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;", "pm.collectionVariables.set('outsiderEmail', `item-outsider-${outsiderSuffix}@example.com`);", "pm.collectionVariables.set('outsiderStudentId', `ITEM-OUTSIDER-${outsiderSuffix}`);"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Outsider account registers', () => pm.response.to.have.status(201));"] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Item Outsider\",\n  \"email\": \"{{outsiderEmail}}\",\n  \"studentId\": \"{{outsiderStudentId}}\",\n  \"password\": \"Item-Test-Password-42\",\n  \"confirmPassword\": \"Item-Test-Password-42\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Login Outsider",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Outsider login succeeds', () => pm.response.to.have.status(200));", "const outsiderLoginData = pm.response.json().data;", "pm.collectionVariables.set('outsiderToken', outsiderLoginData.token);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{outsiderEmail}}\",\n  \"password\": \"Item-Test-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Reject Outsider Update",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Other student cannot update item', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{outsiderToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"title\": \"unauthorized-edit\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items/{{itemId}}" }
+    },
+    {
+      "name": "Reject Outsider Delete",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Other student cannot delete item', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "DELETE", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{outsiderToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/items/{{itemId}}" }
+    },
+    {
+      "name": "Update Own Item",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Owner can update item', () => pm.response.to.have.status(200));", "pm.test('Updated title is returned', () => pm.expect(pm.response.json().data.item.title).to.eql(`${pm.collectionVariables.get('itemTitle')}-updated`));"] } }],
+      "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"title\": \"{{itemTitle}}-updated\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items/{{itemId}}" }
+    },
+    {
+      "name": "Delete Own Lost Item",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Owner can delete item', () => pm.response.to.have.status(200));"] } }],
+      "request": { "method": "DELETE", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/items/{{itemId}}" }
+    },
+    {
+      "name": "Confirm Deleted Item Is Missing",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Deleted item returns 404', () => pm.response.to.have.status(404));"] } }],
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/items/{{itemId}}" }
+    },
+    {
+      "name": "Delete Own Found Item",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Owner can delete found item', () => pm.response.to.have.status(200));"] } }],
+      "request": { "method": "DELETE", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/items/{{foundItemId}}" }
+    }
+  ]
+}

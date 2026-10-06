@@ -1,0 +1,150 @@
+{
+  "info": {
+    "name": "College Lost & Found Claim API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "reporterEmail", "value": "" },
+    { "key": "reporterStudentId", "value": "" },
+    { "key": "reporterToken", "value": "" },
+    { "key": "reporterUserId", "value": "" },
+    { "key": "claimantEmail", "value": "" },
+    { "key": "claimantStudentId", "value": "" },
+    { "key": "claimantToken", "value": "" },
+    { "key": "itemAId", "value": "" },
+    { "key": "itemBId", "value": "" },
+    { "key": "itemCId", "value": "" },
+    { "key": "claimAId", "value": "" },
+    { "key": "claimBId", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Register Reporter",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const reporterSuffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;", "pm.collectionVariables.set('reporterEmail', `claim-reporter-${reporterSuffix}@example.com`);", "pm.collectionVariables.set('reporterStudentId', `CLAIM-REPORTER-${reporterSuffix}`);"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reporter registers', () => pm.response.to.have.status(201));"] } }
+      ],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Claim Test Reporter\",\n  \"email\": \"{{reporterEmail}}\",\n  \"studentId\": \"{{reporterStudentId}}\",\n  \"password\": \"Claim-Test-Password-42\",\n  \"confirmPassword\": \"Claim-Test-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Login Reporter",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reporter login succeeds', () => pm.response.to.have.status(200));", "const reporterLoginData = pm.response.json().data;", "pm.collectionVariables.set('reporterToken', reporterLoginData.token);", "pm.collectionVariables.set('reporterUserId', reporterLoginData.user.id);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{reporterEmail}}\",\n  \"password\": \"Claim-Test-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Report Claimable Item A",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claimable item A is created', () => pm.response.to.have.status(201));", "const claimItemA = pm.response.json().data.item;", "pm.collectionVariables.set('itemAId', claimItemA._id);", "pm.test('Item A belongs to reporter', () => pm.expect(claimItemA.reportedBy._id).to.eql(pm.collectionVariables.get('reporterUserId')));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{reporterToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"title\": \"claim-test-item-a\",\n  \"description\": \"Blue notebook\",\n  \"category\": \"Stationery\",\n  \"location\": \"Library\",\n  \"date\": \"2026-10-01T09:00:00.000Z\",\n  \"type\": \"Found\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items" }
+    },
+    {
+      "name": "Report Claimable Item B",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claimable item B is created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('itemBId', pm.response.json().data.item._id);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{reporterToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"title\": \"claim-test-item-b\",\n  \"description\": \"Green water bottle\",\n  \"category\": \"Accessories\",\n  \"location\": \"Gym\",\n  \"date\": \"2026-10-01T09:30:00.000Z\",\n  \"type\": \"Found\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items" }
+    },
+    {
+      "name": "Report Item C To Close",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Item C is created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('itemCId', pm.response.json().data.item._id);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{reporterToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"title\": \"claim-test-item-c\",\n  \"description\": \"Red umbrella\",\n  \"category\": \"Accessories\",\n  \"location\": \"Cafeteria\",\n  \"date\": \"2026-10-01T10:00:00.000Z\",\n  \"type\": \"Found\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items" }
+    },
+    {
+      "name": "Register Claimant",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const claimantSuffix = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;", "pm.collectionVariables.set('claimantEmail', `claimant-${claimantSuffix}@example.com`);", "pm.collectionVariables.set('claimantStudentId', `CLAIMANT-${claimantSuffix}`);"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claimant registers', () => pm.response.to.have.status(201));"] } }
+      ],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Claim Test Claimant\",\n  \"email\": \"{{claimantEmail}}\",\n  \"studentId\": \"{{claimantStudentId}}\",\n  \"password\": \"Claim-Test-Password-42\",\n  \"confirmPassword\": \"Claim-Test-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/register" }
+    },
+    {
+      "name": "Login Claimant",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claimant login succeeds', () => pm.response.to.have.status(200));", "const claimantLoginData = pm.response.json().data;", "pm.collectionVariables.set('claimantToken', claimantLoginData.token);", "pm.collectionVariables.set('claimantUserId', claimantLoginData.user.id);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{claimantEmail}}\",\n  \"password\": \"Claim-Test-Password-42\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Reject Claim On Own Item",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reporter cannot claim own item', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{reporterToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemAId}}\",\n  \"message\": \"I found this item\",\n  \"proofDescription\": \"I reported it first\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Create Pending Claim A",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claim is created', () => pm.response.to.have.status(201));", "const createdClaimA = pm.response.json().data.claim;", "pm.collectionVariables.set('claimAId', createdClaimA._id);", "pm.test('Claim starts Pending', () => pm.expect(createdClaimA.status).to.eql('Pending'));", "pm.test('Claimant comes from authenticated user', () => pm.expect(createdClaimA.claimant._id).to.eql(pm.collectionVariables.get('claimantUserId')));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemAId}}\",\n  \"message\": \"This is my notebook\",\n  \"proofDescription\": \"My initials are written inside the front cover\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Reject Duplicate Claim",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Duplicate claim is rejected', () => pm.response.to.have.status(409));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemAId}}\",\n  \"message\": \"Duplicate request\",\n  \"proofDescription\": \"Duplicate proof\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Reject Client Claimant ID",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Client cannot choose claimant', () => pm.response.to.have.status(400));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemBId}}\",\n  \"claimant\": \"000000000000000000000000\",\n  \"message\": \"Spoofed claimant\",\n  \"proofDescription\": \"Should be rejected\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Create Pending Claim B",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Second claim is created', () => pm.response.to.have.status(201));", "const createdClaimB = pm.response.json().data.claim;", "pm.collectionVariables.set('claimBId', createdClaimB._id);", "pm.test('Second claim starts Pending', () => pm.expect(createdClaimB.status).to.eql('Pending'));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemBId}}\",\n  \"message\": \"This is my bottle\",\n  \"proofDescription\": \"There is a small mark near the base\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Get My Claims",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claimant can list own claims', () => pm.response.to.have.status(200));", "const myClaimsBeforeDecision = pm.response.json().data.claims;", "pm.test('My claims includes both claims', () => pm.expect(myClaimsBeforeDecision.some((claim) => claim._id === pm.collectionVariables.get('claimAId')) && myClaimsBeforeDecision.some((claim) => claim._id === pm.collectionVariables.get('claimBId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/claims/my" }
+    },
+    {
+      "name": "Reject Student Claim List Access",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Non-admin cannot list all claims', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Close Item C",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reporter closes item C', () => pm.response.to.have.status(200));", "pm.test('Item C is Closed', () => pm.expect(pm.response.json().data.item.status).to.eql('Closed'));"] } }],
+      "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{reporterToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"status\": \"Closed\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/items/{{itemCId}}" }
+    },
+    {
+      "name": "Reject Claim On Closed Item",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Closed items cannot be claimed', () => pm.response.to.have.status(409));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemCId}}\",\n  \"message\": \"Claim closed item\",\n  \"proofDescription\": \"No proof\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Reject Missing Claim Fields",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Claim fields are validated', () => pm.response.to.have.status(400));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Login Admin",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin login succeeds', () => pm.response.to.have.status(200));", "const claimsAdminLoginData = pm.response.json().data;", "pm.collectionVariables.set('adminToken', claimsAdminLoginData.token);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" }
+    },
+    {
+      "name": "Admin Lists Claims",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin can list all claims', () => pm.response.to.have.status(200));", "const allClaimsForAdmin = pm.response.json().data.claims;", "pm.test('Admin list contains test claims', () => pm.expect(allClaimsForAdmin.some((claim) => claim._id === pm.collectionVariables.get('claimAId')) && allClaimsForAdmin.some((claim) => claim._id === pm.collectionVariables.get('claimBId'))).to.eql(true));"] } }],
+      "request": { "method": "GET", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Approve Claim A",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin can approve claim', () => pm.response.to.have.status(200));", "const approvedClaimA = pm.response.json().data.claim;", "pm.test('Claim status becomes Approved', () => pm.expect(approvedClaimA.status).to.eql('Approved'));", "pm.test('Item status becomes Returned', () => pm.expect(approvedClaimA.item.status).to.eql('Returned'));"] } }],
+      "request": { "method": "PUT", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/claims/{{claimAId}}/approve" }
+    },
+    {
+      "name": "Reject Claim On Returned Item",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Returned items cannot be claimed', () => pm.response.to.have.status(409));"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "body": { "mode": "raw", "raw": "{\n  \"item\": \"{{itemAId}}\",\n  \"message\": \"Claim returned item\",\n  \"proofDescription\": \"No proof\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/claims" }
+    },
+    {
+      "name": "Reject Claim B",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin can reject claim', () => pm.response.to.have.status(200));", "const rejectedClaimB = pm.response.json().data.claim;", "pm.test('Claim status becomes Rejected', () => pm.expect(rejectedClaimB.status).to.eql('Rejected'));", "pm.test('Rejecting leaves the item status unchanged', () => pm.expect(rejectedClaimB.item.status).to.eql('Found'));"] } }],
+      "request": { "method": "PUT", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/claims/{{claimBId}}/reject" }
+    },
+    {
+      "name": "Reject Student Approval Access",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Non-admin cannot approve claims', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "PUT", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/claims/{{claimAId}}/approve" }
+    },
+    {
+      "name": "Reject Student Rejection Access",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Non-admin cannot reject claims', () => pm.response.to.have.status(403));"] } }],
+      "request": { "method": "PUT", "header": [], "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{claimantToken}}", "type": "string" }] }, "url": "{{baseUrl}}/api/claims/{{claimBId}}/reject" }
+    }
+  ]
+}

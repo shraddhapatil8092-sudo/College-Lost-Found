@@ -1,0 +1,105 @@
+{
+  "info": {
+    "name": "College Lost & Found Auth API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "testEmail", "value": "" },
+    { "key": "testStudentId", "value": "" },
+    { "key": "authToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Register",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const uniqueId = Date.now().toString();",
+              "pm.collectionVariables.set('testEmail', `postman-${uniqueId}@example.com`);",
+              "pm.collectionVariables.set('testStudentId', `POSTMAN-${uniqueId}`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registration succeeds with 201', () => pm.response.to.have.status(201));",
+              "const registrationData = pm.response.json().data;",
+              "pm.test('New account defaults to student role', () => pm.expect(registrationData.user.role).to.eql('student'));",
+              "pm.test('Registration response omits password', () => pm.expect(registrationData.user).not.to.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Test User\",\n  \"email\": \"{{testEmail}}\",\n  \"studentId\": \"{{testStudentId}}\",\n  \"password\": \"Postman-Test-Password-42\",\n  \"confirmPassword\": \"Postman-Test-Password-42\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login succeeds with 200', () => pm.response.to.have.status(200));",
+              "const loginData = pm.response.json().data;",
+              "pm.test('Login returns a JWT', () => pm.expect(loginData.token).to.be.a('string').and.not.empty);",
+              "pm.test('Login response omits password', () => pm.expect(loginData.user).not.to.have.property('password'));",
+              "pm.collectionVariables.set('authToken', loginData.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"Postman-Test-Password-42\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "Current User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Authenticated user request succeeds with 200', () => pm.response.to.have.status(200));",
+              "const currentUserData = pm.response.json().data;",
+              "pm.test('Current user response omits password', () => pm.expect(currentUserData.user).not.to.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+        },
+        "url": "{{baseUrl}}/api/auth/me"
+      }
+    }
+  ]
+}
