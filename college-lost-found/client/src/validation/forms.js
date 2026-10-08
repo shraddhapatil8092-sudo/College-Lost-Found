@@ -3,7 +3,7 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function validateRegistration(form) {
   if (!form.name?.trim()) return 'Name is required';
   if (!emailPattern.test(form.email?.trim() || '')) return 'Enter a valid email';
-  if (!form.studentId?.trim()) return 'Student ID is required';
+  if (form.studentId && form.studentId.trim().length > 50) return 'Student ID must be under 50 characters';
   if ((form.password || '').length < 6) return 'Password must be at least 6 characters';
   if (form.password !== form.confirmPassword) return 'Passwords do not match';
   return '';

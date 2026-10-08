@@ -1,4 +1,7 @@
 import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import express from 'express';
 import { connectDB } from './config/db.js';
@@ -9,6 +12,10 @@ import adminRoutes from './routes/adminRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { sendSuccess } from './utils/apiResponse.js';
 import { uploadDirectory } from './config/uploads.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, '../client/dist');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -30,11 +37,34 @@ app.get('/api/test', (_request, response) => {
   return sendSuccess(response, 200, 'Backend API is working', {});
 });
 
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+
+  app.use((request, response, next) => {
+    if (request.method === 'GET' && !request.path.startsWith('/api') && !request.path.startsWith('/uploads')) {
+      return response.sendFile(path.join(clientDistPath, 'index.html'));
+    }
+    return next();
+  });
+}
+
+app.use(async (_req, _res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-await connectDB();
+if (!process.env.VERCEL) {
+  await connectDB();
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+}
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+export default app;

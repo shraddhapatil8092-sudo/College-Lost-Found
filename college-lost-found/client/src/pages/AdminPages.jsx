@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, ClipboardList, FileSearch, PackageCheck, UsersRound, X } from 'lucide-react';
+import { ArrowRight, Check, ClipboardList, FileSearch, PackageCheck, Trash2, UsersRound, X } from 'lucide-react';
 import api, { getApiError } from '../api/client.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import {
   DashboardCard,
   EmptyState,
@@ -129,6 +130,20 @@ export function ManageClaims() {
     }
   }
 
+  async function handleDeleteClaim(claimId) {
+    if (!window.confirm('Delete this claim? This will permanently remove it from the database.')) return;
+    setBusyClaim(claimId);
+    setError('');
+    try {
+      await api.delete(`/claims/${claimId}`);
+      setClaims((current) => current.filter((entry) => entry._id !== claimId));
+    } catch (requestError) {
+      setError(getApiError(requestError, 'Unable to delete this claim.'));
+    } finally {
+      setBusyClaim('');
+    }
+  }
+
   const pendingCount = claims.filter((claim) => claim.status === 'Pending').length;
   return (
     <main className="page-wrap standard-page">
@@ -138,16 +153,31 @@ export function ManageClaims() {
         <div className="admin-claim-top"><div><span className="eyebrow">Claim for</span><h2>{claim.item?.title || 'Item no longer available'}</h2></div><StatusPill>{claim.status}</StatusPill></div>
         <div className="claimant-line"><InitialAvatar name={claim.claimant?.name} /><div><strong>{claim.claimant?.name || 'Campus member'}</strong><span>{claim.claimant?.email || 'No email available'} · {claim.claimant?.studentId || 'No student ID'}</span></div></div>
         <div className="claim-proof"><div><span>Message</span><p>{claim.message}</p></div><div><span>Proof description</span><p>{claim.proofDescription}</p></div></div>
-        <div className="admin-claim-footer"><span>Submitted {new Date(claim.createdAt).toLocaleDateString()}</span><div className="table-actions"><Link className="quiet-link" to={claim.item ? `/items/${claim.item._id}` : '/admin/items'}>View item <ArrowRight size={14} /></Link>{claim.status === 'Pending' && <><button className="button button-small button-secondary" type="button" onClick={() => decide(claim, 'reject')} disabled={busyClaim === claim._id}><X size={15} /> Reject</button><button className="button button-small" type="button" onClick={() => decide(claim, 'approve')} disabled={busyClaim === claim._id}><Check size={15} /> Approve</button></>}</div></div>
+        <div className="admin-claim-footer">
+          <span>Submitted {new Date(claim.createdAt).toLocaleDateString()}</span>
+          <div className="table-actions">
+            <Link className="quiet-link" to={claim.item ? `/items/${claim.item._id}` : '/admin/items'}>View item <ArrowRight size={14} /></Link>
+            {claim.status === 'Pending' && (
+              <>
+                <button className="button button-small button-secondary" type="button" onClick={() => decide(claim, 'reject')} disabled={busyClaim === claim._id}><X size={15} /> Reject</button>
+                <button className="button button-small" type="button" onClick={() => decide(claim, 'approve')} disabled={busyClaim === claim._id}><Check size={15} /> Approve</button>
+              </>
+            )}
+            <button className="button button-small button-secondary danger-icon" type="button" onClick={() => handleDeleteClaim(claim._id)} disabled={busyClaim === claim._id} title="Delete claim from database"><Trash2 size={14} /> Delete</button>
+          </div>
+        </div>
       </article>)}</div> : <EmptyState icon={ClipboardList} title="No claims yet" description="Submitted claims will appear in this review queue." />}
     </main>
   );
 }
 
 export function ManageUsers() {
+  const { user: currentAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -158,13 +188,48 @@ export function ManageUsers() {
     return () => { active = false; };
   }, []);
 
+  async function handleDeleteUser() {
+    if (!deleteTarget) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api.delete(`/admin/users/${deleteTarget._id}`);
+      setUsers((current) => current.filter((u) => u._id !== deleteTarget._id));
+      setDeleteTarget(null);
+    } catch (requestError) {
+      setError(getApiError(requestError, 'Unable to delete this user.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleToggleRole(targetUser) {
+    const nextRole = targetUser.role === 'admin' ? 'student' : 'admin';
+    if (!window.confirm(`Change ${targetUser.name}'s role to ${nextRole}?`)) return;
+    try {
+      await api.put(`/admin/users/${targetUser._id}/role`, { role: nextRole });
+      setUsers((current) => current.map((u) => (u._id === targetUser._id ? { ...u, role: nextRole } : u)));
+    } catch (requestError) {
+      setError(getApiError(requestError, 'Unable to update user role.'));
+    }
+  }
+
   return (
     <main className="page-wrap standard-page">
       <PageHeading eyebrow="Administration" title="Manage users" description="Registered campus accounts and assigned roles." />
       <ErrorMessage>{error}</ErrorMessage>
-      {loading ? <LoadingSpinner label="Loading users" /> : users.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>User</th><th>Student ID</th><th>Role</th><th>Joined</th></tr></thead><tbody>
-        {users.map((user) => <tr key={user._id}><td><div className="user-table-cell"><InitialAvatar name={user.name} /><div><span className="table-primary">{user.name}</span><span className="table-secondary">{user.email}</span></div></div></td><td>{user.studentId}</td><td><span className={`role-label ${user.role}`}>{user.role}</span></td><td>{new Date(user.createdAt).toLocaleDateString()}</td></tr>)}
+      {loading ? <LoadingSpinner label="Loading users" /> : users.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>User</th><th>Student ID</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead><tbody>
+        {users.map((user) => <tr key={user._id}><td><div className="user-table-cell"><InitialAvatar name={user.name} /><div><span className="table-primary">{user.name}</span><span className="table-secondary">{user.email}</span></div></div></td><td>{user.studentId}</td><td><div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><span className={`role-label ${user.role}`}>{user.role}</span>{currentAdmin?.id !== user._id && <button className="chip" type="button" style={{ fontSize: '10px', padding: '2px 7px' }} onClick={() => handleToggleRole(user)} title={`Switch to ${user.role === 'admin' ? 'student' : 'admin'}`}>Make {user.role === 'admin' ? 'Student' : 'Admin'}</button>}</div></td><td>{new Date(user.createdAt).toLocaleDateString()}</td><td><div className="table-actions">{currentAdmin?.id !== user._id ? <button className="icon-button danger-icon" type="button" aria-label={`Delete ${user.name}`} title="Delete user" onClick={() => setDeleteTarget(user)}><Trash2 size={16} /></button> : <small style={{ color: '#888' }}>You</small>}</div></td></tr>)}
       </tbody></table></div> : <EmptyState icon={UsersRound} title="No users found" description="Registered accounts will appear here." />}
+      {deleteTarget && (
+        <Modal title="Delete user account?" onClose={() => setDeleteTarget(null)}>
+          <p className="modal-lede">This permanently deletes <strong>{deleteTarget.name}</strong> ({deleteTarget.email}), all reports they submitted, and their claims from MongoDB.</p>
+          <div className="modal-actions">
+            <button className="button button-secondary" type="button" onClick={() => setDeleteTarget(null)}>Cancel</button>
+            <button className="button button-danger" type="button" onClick={handleDeleteUser} disabled={busy}>{busy ? 'Deleting…' : 'Delete user'}</button>
+          </div>
+        </Modal>
+      )}
     </main>
   );
 }

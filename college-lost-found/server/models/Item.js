@@ -7,6 +7,7 @@ const itemSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     type: { type: String, enum: ['Lost', 'Found'], required: true },
     location: { type: String, required: true, trim: true },
+    contact: { type: String, default: '', trim: true },
     date: { type: Date, required: true },
     image: { type: String, default: '' },
     status: {

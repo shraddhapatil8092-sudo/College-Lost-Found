@@ -11,8 +11,10 @@ import {
   LogOut,
   Menu,
   PackageSearch,
+  Plus,
   Search,
   ShieldCheck,
+  Sparkles,
   UserRound,
   X,
 } from 'lucide-react';
@@ -24,8 +26,8 @@ export function Navbar() {
   const links = user
     ? user.role === 'admin'
       ? [['Overview', '/admin'], ['Items', '/admin/items'], ['Claims', '/admin/claims'], ['Users', '/admin/users'], ['Profile', '/profile']]
-      : [['Overview', '/dashboard'], ['Items', '/items'], ['My reports', '/my-reports'], ['My claims', '/my-claims'], ['Profile', '/profile']]
-    : [['Home', '/'], ['Get started', '/register'], ['About', '/about']];
+      : [['Dashboard', '/dashboard'], ['Browse Items', '/items'], ['My Reports', '/my-reports'], ['My Claims', '/my-claims'], ['Profile', '/profile']]
+    : [['Home', '/'], ['Browse Items', '/items'], ['About', '/about']];
 
   function closeMenu() {
     setMenuOpen(false);
@@ -35,7 +37,7 @@ export function Navbar() {
     <header className="topbar">
       <div className="topbar-inner">
         <Link className="brand" to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/'} onClick={closeMenu}>
-          <span className="brand-mark"><PackageSearch size={20} strokeWidth={2.1} /></span>
+          <span className="brand-mark"><PackageSearch size={21} strokeWidth={2.2} /></span>
           <span className="brand-name">Found<span>well</span></span>
         </Link>
         <button className="icon-button mobile-menu-button" type="button" aria-label="Toggle navigation" onClick={() => setMenuOpen(!menuOpen)}>
@@ -51,19 +53,23 @@ export function Navbar() {
         <div className="topbar-actions">
           {user ? (
             <>
-              <Link className="profile-link" to="/profile" aria-label="Open profile">
+              <Link className="button button-small nav-report-btn" to="/items/new/lost" onClick={closeMenu}>
+                <Plus size={15} /> <span>Report</span>
+              </Link>
+              <Link className="profile-link" to="/profile" aria-label="Open profile" onClick={closeMenu}>
                 <span className="avatar avatar-small">{user.name?.charAt(0)?.toUpperCase()}</span>
                 <span className="profile-name">{user.name?.split(' ')[0]}</span>
-                <ChevronDown size={15} />
+                {user.role === 'admin' && <span className="profile-admin-chip">Admin</span>}
+                <ChevronDown size={14} className="profile-chevron" />
               </Link>
               <button className="icon-button logout-button" type="button" aria-label="Sign out" title="Sign out" onClick={logout}>
-                <LogOut size={18} />
+                <LogOut size={17} />
               </button>
             </>
           ) : (
             <>
               <Link className="signin-link" to="/login">Sign in</Link>
-              <Link className="button button-small" to="/register">Get started <ArrowRight size={15} /></Link>
+              <Link className="button button-small" to="/register">Get started <ArrowRight size={14} /></Link>
             </>
           )}
         </div>
@@ -76,40 +82,67 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
-        <span className="footer-brand"><PackageSearch size={16} /> Foundwell</span>
-        <span>Campus items, back where they belong.</span>
-        <Link to="/about">About this service <ArrowRight size={14} /></Link>
+        <div className="footer-brand-wrap">
+          <Link className="footer-brand" to="/">
+            <PackageSearch size={18} /> Foundwell
+          </Link>
+          <p className="footer-tagline">Reconnecting campus belongings with community trust &amp; speed.</p>
+        </div>
+        <div className="footer-nav">
+          <Link to="/">Home</Link>
+          <Link to="/items">Browse Items</Link>
+          <Link to="/about">About Service</Link>
+          <Link to="/register">Create Account</Link>
+        </div>
+        <div className="footer-legal">
+          <span>&copy; {new Date().getFullYear()} Foundwell Portal</span>
+          <span className="footer-badge"><ShieldCheck size={13} /> Verified Campus</span>
+        </div>
       </div>
     </footer>
   );
 }
 
-export function ItemCard({ item, actionLabel = 'View item' }) {
+export function ItemCard({ item, actionLabel = 'View details' }) {
   const [imageFailed, setImageFailed] = useState(false);
   const itemType = item.type?.toLowerCase();
+
+  const formattedDate = item.date
+    ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'Date unknown';
+
   return (
     <article className="item-card">
       <Link className="item-card-media" to={`/items/${item._id}`} aria-label={`View ${item.title}`}>
         {item.image && !imageFailed ? (
-          <img src={item.image} alt="" onError={() => setImageFailed(true)} />
+          <img src={item.image} alt={item.title} onError={() => setImageFailed(true)} loading="lazy" />
         ) : (
           <div className={`item-placeholder ${itemType}`}>
-            <Box size={30} strokeWidth={1.4} />
-            <span>{item.type} item</span>
+            <Box size={32} strokeWidth={1.5} />
+            <span>{item.type} Item</span>
           </div>
         )}
         <span className={`type-badge ${itemType}`}>{item.type}</span>
       </Link>
       <div className="item-card-body">
         <div className="item-card-meta">
-          <span>{item.category}</span>
-          <span>{item.date ? new Date(item.date).toLocaleDateString() : 'Date not set'}</span>
+          <span className="meta-category">{item.category}</span>
+          <span className="meta-date">{formattedDate}</span>
         </div>
-        <h3><Link to={`/items/${item._id}`}>{item.title}</Link></h3>
-        <p className="item-location"><Compass size={14} /> {item.location}</p>
+        <h3>
+          <Link to={`/items/${item._id}`}>{item.title}</Link>
+        </h3>
+        <p className="item-location">
+          <Compass size={13} /> <span>{item.location}</span>
+        </p>
         <div className="item-card-bottom">
-          <span className={`status-badge status-${item.status?.toLowerCase().replaceAll(' ', '-')}`}>{item.status}</span>
-          <Link className="text-link" to={`/items/${item._id}`}>{actionLabel} <ArrowRight size={14} /></Link>
+          <span className={`status-badge status-${item.status?.toLowerCase().replaceAll(' ', '-')}`}>
+            <span className="status-dot" />
+            {item.status}
+          </span>
+          <Link className="text-link" to={`/items/${item._id}`}>
+            {actionLabel} <ArrowRight size={13} />
+          </Link>
         </div>
       </div>
     </article>
@@ -143,10 +176,20 @@ export function FilterPanel({ filters, onChange, includeType = true }) {
         </select>
       </label>
       <label className="filter-control"><span>Category</span>
-        <input value={filters.category || ''} onChange={(event) => onChange('category', event.target.value)} placeholder="Any category" />
+        <input value={filters.category || ''} onChange={(event) => onChange('category', event.target.value)} placeholder="Any category" list="filter-categories-list" />
+        <datalist id="filter-categories-list">
+          {['Electronics', 'Bags', 'ID & Keys', 'Books & Stationery', 'Bottles', 'Accessories'].map((cat) => (
+            <option key={cat} value={cat} />
+          ))}
+        </datalist>
       </label>
       <label className="filter-control"><span>Location</span>
-        <input value={filters.location || ''} onChange={(event) => onChange('location', event.target.value)} placeholder="Any location" />
+        <input value={filters.location || ''} onChange={(event) => onChange('location', event.target.value)} placeholder="Any location" list="filter-locations-list" />
+        <datalist id="filter-locations-list">
+          {['Library', 'Cafeteria', 'Auditorium', 'Computer Lab', 'Gym', 'Classrooms', 'Admin Office', 'Parking Area', 'Campus Garden'].map((loc) => (
+            <option key={loc} value={loc} />
+          ))}
+        </datalist>
       </label>
     </div>
   );

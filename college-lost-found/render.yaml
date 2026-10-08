@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: college-lost-found
+    env: node
+    plan: free
+    buildCommand: npm install --prefix server && npm install --prefix client && npm run build --prefix client
+    startCommand: node server/server.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        value: mongodb+srv://shraddhapatil8092_db_user:Shraddha123@cluster0.ludoqls.mongodb.net/college_lost_found?retryWrites=true&w=majority&appName=Cluster0
+      - key: JWT_SECRET
+        value: 7dq_ueXFm7xfNOBobhkjANeN6c01n1Pa033yotAno6ozKjDif7ITVWJxlpeo2zCw
+      - key: NODE_ENV
+        value: production

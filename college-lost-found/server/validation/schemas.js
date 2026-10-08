@@ -31,22 +31,24 @@ const password = Joi.string().min(6).required().messages({
 export const registerSchema = Joi.object({
   name: requiredText('Name', 100),
   email,
-  studentId: requiredText('Student ID', 50),
+  studentId: Joi.string().trim().allow('').max(50).default(''),
+  phone: Joi.string().trim().allow('').max(30).default(''),
   password,
   confirmPassword: Joi.string().valid(Joi.ref('password')).required().messages({
     'any.required': 'Confirm password is required',
     'string.empty': 'Confirm password is required',
     'any.only': 'Passwords do not match',
   }),
-}).unknown(false).required();
+}).unknown(true).required();
 
-export const loginSchema = Joi.object({ email, password }).unknown(false).required();
+export const loginSchema = Joi.object({ email, password }).unknown(true).required();
 
 export const itemCreateSchema = Joi.object({
   title: requiredText('Item title', 120),
   description: requiredText('Description', 5000),
   category: requiredText('Category', 80),
   location: requiredText('Location', 200),
+  contact: Joi.string().trim().allow('').max(100).default(''),
   date: Joi.date().iso().required().messages({
     'any.required': 'Date is required',
     'date.base': 'Enter a valid date',
@@ -58,19 +60,20 @@ export const itemCreateSchema = Joi.object({
   }),
   image: Joi.string().trim().uri({ scheme: ['http', 'https'] }).allow('').max(2048)
     .messages({ 'string.uri': 'Image must be a valid URL', 'string.max': 'Image URL is too long' }),
-}).unknown(false).required();
+}).unknown(true).required();
 
 export const itemUpdateSchema = Joi.object({
   title: optionalText('Item title', 120),
   description: optionalText('Description', 5000),
   category: optionalText('Category', 80),
   location: optionalText('Location', 200),
+  contact: Joi.string().trim().allow('').max(100),
   date: Joi.date().iso().messages({ 'date.base': 'Enter a valid date', 'date.format': 'Enter a valid date' }),
   type: Joi.string().valid(...itemTypes).messages({ 'any.only': 'Type must be Lost or Found' }),
   status: Joi.string().valid(...itemStatuses).messages({ 'any.only': 'Enter a valid item status' }),
   image: Joi.string().trim().uri({ scheme: ['http', 'https'] }).allow('').max(2048)
     .messages({ 'string.uri': 'Image must be a valid URL', 'string.max': 'Image URL is too long' }),
-}).min(1).unknown(false).required().messages({ 'object.min': 'Provide at least one field to update' });
+}).min(1).unknown(true).required().messages({ 'object.min': 'Provide at least one field to update' });
 
 export const itemFiltersSchema = Joi.object({
   title: optionalText('Title filter', 120),
@@ -78,7 +81,7 @@ export const itemFiltersSchema = Joi.object({
   type: Joi.string().valid(...itemTypes).messages({ 'any.only': 'Type must be Lost or Found' }),
   location: optionalText('Location filter', 200),
   status: Joi.string().valid(...itemStatuses).messages({ 'any.only': 'Enter a valid item status' }),
-}).unknown(false).required();
+}).unknown(true).required();
 
 const objectId = Joi.string().hex().length(24).required().messages({
   'any.required': 'ID is required',
@@ -87,6 +90,7 @@ const objectId = Joi.string().hex().length(24).required().messages({
 });
 
 export const itemIdSchema = Joi.object({ id: objectId }).unknown(false).required();
+export const userIdSchema = Joi.object({ id: objectId }).unknown(false).required();
 
 export const claimCreateSchema = Joi.object({
   item: objectId.messages({

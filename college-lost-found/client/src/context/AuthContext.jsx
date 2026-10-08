@@ -41,6 +41,10 @@ export function AuthProvider({ children }) {
 
   async function register(details) {
     const { data } = await api.post('/auth/register', details);
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setUser(data.user);
+    }
     return data.user;
   }
 
@@ -49,8 +53,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  function updateUser(updatedUser) {
+    setUser((current) => (current ? { ...current, ...updatedUser } : updatedUser));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

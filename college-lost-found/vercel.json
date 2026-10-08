@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "MONGO_URI": "mongodb+srv://shraddhapatil8092_db_user:Shraddha123@cluster0.ludoqls.mongodb.net/college_lost_found?retryWrites=true&w=majority&appName=Cluster0",
+    "JWT_SECRET": "7dq_ueXFm7xfNOBobhkjANeN6c01n1Pa033yotAno6ozKjDif7ITVWJxlpeo2zCw"
+  }
+}

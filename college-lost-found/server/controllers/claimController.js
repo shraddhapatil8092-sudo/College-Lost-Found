@@ -61,6 +61,11 @@ export async function approveClaim(request, response) {
     if (!claim) {
       throw new ApiError(404, 'Claim not found', 'RESOURCE_NOT_FOUND');
     }
+    const targetItem = await Item.findById(claim.item).select('reportedBy');
+    const isReporter = targetItem && targetItem.reportedBy.toString() === request.user._id.toString();
+    if (request.user.role !== 'admin' && !isReporter) {
+      throw new ApiError(403, 'You are not allowed to approve this claim', 'FORBIDDEN');
+    }
     if (claim.status !== 'Pending') {
       throw new ApiError(409, 'Only pending claims can be approved', 'CLAIM_NOT_PENDING');
     }
@@ -102,6 +107,14 @@ export async function approveClaim(request, response) {
 }
 
 export async function rejectClaim(request, response) {
+  const targetClaim = await Claim.findById(request.params.id).select('item status');
+  if (!targetClaim) throw new ApiError(404, 'Claim not found', 'RESOURCE_NOT_FOUND');
+  const targetItem = await Item.findById(targetClaim.item).select('reportedBy');
+  const isReporter = targetItem && targetItem.reportedBy.toString() === request.user._id.toString();
+  if (request.user.role !== 'admin' && !isReporter) {
+    throw new ApiError(403, 'You are not allowed to reject this claim', 'FORBIDDEN');
+  }
+
   const claim = await Claim.findOneAndUpdate(
     { _id: request.params.id, status: 'Pending' },
     { $set: { status: 'Rejected' } },
@@ -109,11 +122,36 @@ export async function rejectClaim(request, response) {
   );
 
   if (!claim) {
-    const existingClaim = await Claim.exists({ _id: request.params.id });
-    if (!existingClaim) throw new ApiError(404, 'Claim not found', 'RESOURCE_NOT_FOUND');
     throw new ApiError(409, 'Only pending claims can be rejected', 'CLAIM_NOT_PENDING');
   }
 
   await populateClaim(claim);
   return sendSuccess(response, 200, 'Claim rejected successfully', { claim });
+}
+
+export async function getItemClaims(request, response) {
+  const item = await Item.findById(request.params.id).select('reportedBy');
+  if (!item) throw new ApiError(404, 'Item not found', 'RESOURCE_NOT_FOUND');
+  if (request.user.role !== 'admin' && item.reportedBy.toString() !== request.user._id.toString()) {
+    throw new ApiError(403, 'You cannot view claims for this item', 'FORBIDDEN');
+  }
+
+  const claims = await Claim.find({ item: item._id })
+    .populate('claimant', 'name email studentId role')
+    .sort({ createdAt: -1 });
+
+  return sendSuccess(response, 200, 'Claims retrieved successfully', { count: claims.length, claims });
+}
+
+export async function deleteClaim(request, response) {
+  const claim = await Claim.findById(request.params.id);
+  if (!claim) {
+    throw new ApiError(404, 'Claim not found', 'RESOURCE_NOT_FOUND');
+  }
+  if (request.user.role !== 'admin' && claim.claimant.toString() !== request.user._id.toString()) {
+    throw new ApiError(403, 'You cannot delete this claim', 'FORBIDDEN');
+  }
+
+  await claim.deleteOne();
+  return sendSuccess(response, 200, 'Claim deleted successfully', {});
 }

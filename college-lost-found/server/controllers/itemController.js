@@ -1,8 +1,9 @@
+import Claim from '../models/Claim.js';
 import Item from '../models/Item.js';
 import ApiError from '../utils/ApiError.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
-const reporterFields = 'name studentId';
+const reporterFields = 'name studentId phone';
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -68,6 +69,7 @@ export async function deleteItem(request, response) {
     throw new ApiError(403, 'You cannot delete this item', 'FORBIDDEN');
   }
 
+  await Claim.deleteMany({ item: item._id });
   await item.deleteOne();
   return sendSuccess(response, 200, 'Item deleted successfully', {});
 }
