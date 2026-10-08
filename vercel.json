@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build",
-  "outputDirectory": "client/dist",
+  "buildCommand": "cd college-lost-found/client && npm install && npm run build",
+  "outputDirectory": "college-lost-found/client/dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -14,7 +14,7 @@
   ],
   "env": {
     "MONGO_URI": "mongodb+srv://shraddhapatil8092_db_user:Shraddha123@cluster0.ludoqls.mongodb.net/college_lost_found?retryWrites=true&w=majority&appName=Cluster0",
-    "JWT_SECRET": "7dq_ueXFm7xfNOBobhkjANeN6c01n1Pa033yotAno6ozKjDif7ITVWJxlpeo2zCw"
+    "JWT_SECRET": "7dq_ueXFm7xfNOBobhkjANeN6c01n1Pa033yotAno6ozKjDif7ITVWJxlpeo2zCw",
+    "NODE_ENV": "production"
   }
 }
-

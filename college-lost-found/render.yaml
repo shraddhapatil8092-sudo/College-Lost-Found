@@ -14,3 +14,4 @@ services:
         value: 7dq_ueXFm7xfNOBobhkjANeN6c01n1Pa033yotAno6ozKjDif7ITVWJxlpeo2zCw
       - key: NODE_ENV
         value: production
+

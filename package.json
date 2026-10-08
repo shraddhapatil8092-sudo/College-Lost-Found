@@ -1,12 +1,12 @@
 {
-  "name": "college-lost-found",
+  "name": "college-lost-found-root",
   "version": "1.0.0",
-  "description": "Foundwell — Campus Lost & Found Web Portal",
+  "description": "Campus Lost and Found Portal",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "cd client && npm install && npm run build",
-    "start": "node server/server.js"
+    "build": "cd college-lost-found/client && npm install && npm run build",
+    "start": "node college-lost-found/server/server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -19,4 +19,3 @@
     "multer": "^2.4.0"
   }
 }
-
