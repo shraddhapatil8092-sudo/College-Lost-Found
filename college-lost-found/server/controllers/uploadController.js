@@ -6,6 +6,7 @@ export function uploadItemImageHandler(request, response) {
     throw new ApiError(400, 'Select an image to upload', 'IMAGE_REQUIRED');
   }
 
-  const imageUrl = `${request.protocol}://${request.get('host')}/uploads/${request.file.filename}`;
+  const base64Data = request.file.buffer.toString('base64');
+  const imageUrl = `data:${request.file.mimetype};base64,${base64Data}`;
   return sendSuccess(response, 201, 'Item image uploaded successfully', { imageUrl });
 }

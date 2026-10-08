@@ -58,8 +58,9 @@ export const itemCreateSchema = Joi.object({
     'any.required': 'Item type is required',
     'any.only': 'Type must be Lost or Found',
   }),
-  image: Joi.string().trim().uri({ scheme: ['http', 'https'] }).allow('').max(2048)
-    .messages({ 'string.uri': 'Image must be a valid URL', 'string.max': 'Image URL is too long' }),
+  image: Joi.string().trim().allow('').max(8 * 1024 * 1024).messages({
+    'string.max': 'Image data is too large',
+  }),
 }).unknown(true).required();
 
 export const itemUpdateSchema = Joi.object({
@@ -71,8 +72,9 @@ export const itemUpdateSchema = Joi.object({
   date: Joi.date().iso().messages({ 'date.base': 'Enter a valid date', 'date.format': 'Enter a valid date' }),
   type: Joi.string().valid(...itemTypes).messages({ 'any.only': 'Type must be Lost or Found' }),
   status: Joi.string().valid(...itemStatuses).messages({ 'any.only': 'Enter a valid item status' }),
-  image: Joi.string().trim().uri({ scheme: ['http', 'https'] }).allow('').max(2048)
-    .messages({ 'string.uri': 'Image must be a valid URL', 'string.max': 'Image URL is too long' }),
+  image: Joi.string().trim().allow('').max(8 * 1024 * 1024).messages({
+    'string.max': 'Image data is too large',
+  }),
 }).min(1).unknown(true).required().messages({ 'object.min': 'Provide at least one field to update' });
 
 export const itemFiltersSchema = Joi.object({

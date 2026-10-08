@@ -623,19 +623,69 @@ function emptyItem(type) {
   };
 }
 
+async function compressImageToDataUrl(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1000;
+        const maxHeight = 1000;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
 async function prepareItemPayload(values) {
   const { imageFile, ...payload } = values;
   if (imageFile) {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    const { data } = await api.post('/items/image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    payload.image = data.imageUrl;
+    try {
+      const compressedDataUrl = await compressImageToDataUrl(imageFile);
+      if (compressedDataUrl) {
+        payload.image = compressedDataUrl;
+      } else {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        const { data } = await api.post('/items/image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        payload.image = data.imageUrl;
+      }
+    } catch {
+      const fallbackUrl = await new Promise((resolve) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => resolve('');
+        r.readAsDataURL(imageFile);
+      });
+      if (fallbackUrl) payload.image = fallbackUrl;
+    }
   }
   if (!payload.image) delete payload.image;
   return payload;
 }
+
 
 export function ReportItem({ type = 'Lost' }) {
   const navigate = useNavigate();

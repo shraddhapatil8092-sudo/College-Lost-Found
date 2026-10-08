@@ -25,8 +25,11 @@ if (!process.env.JWT_SECRET) {
 }
 
 app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static(uploadDirectory, { maxAge: '1d' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+if (uploadDirectory && fs.existsSync(uploadDirectory)) {
+  app.use('/uploads', express.static(uploadDirectory, { maxAge: '1d' }));
+}
 
 app.use(async (_req, _res, next) => {
   try {
